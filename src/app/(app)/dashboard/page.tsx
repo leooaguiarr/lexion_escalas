@@ -7,7 +7,7 @@ import { StatCard } from '@/components/StatCard';
 import { Badge } from '@/components/Badge';
 import { Loading } from '@/components/Loading';
 import { supabase } from '@/lib/supabaseClient';
-import { formatMoney, statusLabel } from '@/lib/domain';
+import { formatMoney, statusLabel, formatDateBRShort } from '@/lib/domain';
 import { SchedulePeriod } from '@/lib/types';
 
 type DashboardData = {
@@ -30,7 +30,6 @@ export default function DashboardPage() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
     const [{ data: schedules }, { data: assignments }, { data: payments }] = await Promise.all([
       supabase.from('schedule_periods').select('*, locations(*)').order('start_date', { ascending: false }).limit(8),
       supabase.from('schedule_assignments').select('id, guard_id'),
@@ -85,24 +84,30 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {data.schedules.map((schedule) => (
-                <tr key={schedule.id}>
-                  <td><strong>{schedule.title}</strong></td>
-                  <td>{schedule.locations?.name ?? '-'}</td>
-                  <td>{schedule.start_date} até {schedule.end_date}</td>
-                  <td>
-                    <Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>
-                      {statusLabel(schedule.status)}
-                    </Badge>
-                  </td>
-                  <td>
-                    <div className="actions" style={{ margin: 0 }}>
-                      <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
-                      <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {data.schedules.map((schedule) => {
+                const cleanTitle = schedule.title.replace(/^escala\s+/i, '');
+                const yearAbbr = schedule.start_date ? schedule.start_date.split('-')[0].slice(-2) : '';
+                const displayTitle = yearAbbr ? `${cleanTitle}/${yearAbbr}` : cleanTitle;
+
+                return (
+                  <tr key={schedule.id}>
+                    <td><strong>{displayTitle}</strong></td>
+                    <td>{schedule.locations?.name ?? '-'}</td>
+                    <td>{formatDateBRShort(schedule.start_date)} até {formatDateBRShort(schedule.end_date)}</td>
+                    <td>
+                      <Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>
+                        {statusLabel(schedule.status)}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className="actions" style={{ margin: 0 }}>
+                        <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
+                        <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

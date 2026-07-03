@@ -64,6 +64,12 @@ export function formatDateBR(value: string): string {
   return parseISODate(value).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
+export function formatDateBRShort(value: string): string {
+  if (!value) return '';
+  const [year, month, day] = value.split('-');
+  return `${day}/${month}/${year.slice(-2)}`;
+}
+
 export function formatDateShort(value: string): string {
   const date = parseISODate(value);
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
