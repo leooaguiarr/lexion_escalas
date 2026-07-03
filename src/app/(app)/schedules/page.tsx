@@ -76,6 +76,19 @@ export default function SchedulesPage() {
     await loadData();
   }
 
+  async function deleteSchedule(id: string, title: string) {
+    const cleanTitle = title.replace(/^escala\s+/i, '');
+    const confirmed = window.confirm(`Tem certeza que deseja excluir a escala "${cleanTitle}"? Todos os turnos e pagamentos associados serão perdidos.`);
+    if (!confirmed) return;
+
+    const { error: deleteError } = await supabase.from('schedule_periods').delete().eq('id', id);
+    if (deleteError) {
+      setError(deleteError.message);
+    } else {
+      await loadData();
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Escalas" description="Crie escalas por quinzena e configure os turnos manualmente." />
@@ -145,6 +158,7 @@ export default function SchedulesPage() {
                           <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
                           <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
                           <Link className="ghost-button" href={`/schedules/${schedule.id}/pdf`}>PDF</Link>
+                          <button className="ghost-button" style={{ color: 'var(--danger)' }} onClick={() => deleteSchedule(schedule.id, schedule.title)}>Excluir</button>
                         </div>
                       </td>
                     </tr>
