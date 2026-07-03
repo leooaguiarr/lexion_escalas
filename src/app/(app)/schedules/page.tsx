@@ -8,7 +8,7 @@ import { ErrorMessage } from '@/components/ErrorMessage';
 import { EmptyState } from '@/components/EmptyState';
 import { Loading } from '@/components/Loading';
 import { supabase } from '@/lib/supabaseClient';
-import { formatDateBR, statusLabel } from '@/lib/domain';
+import { formatDateBRShort, statusLabel } from '@/lib/domain';
 import { Location, SchedulePeriod } from '@/lib/types';
 
 type FormState = {
@@ -129,21 +129,27 @@ export default function SchedulesPage() {
                 </tr>
               </thead>
               <tbody>
-                {schedules.map((schedule) => (
-                  <tr key={schedule.id}>
-                    <td><strong>{schedule.title}</strong><br /><span className="muted small">{schedule.notes}</span></td>
-                    <td>{schedule.locations?.name ?? '-'}</td>
-                    <td>{formatDateBR(schedule.start_date)} até {formatDateBR(schedule.end_date)}</td>
-                    <td><Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>{statusLabel(schedule.status)}</Badge></td>
-                    <td>
-                      <div className="actions" style={{ margin: 0 }}>
-                        <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
-                        <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
-                        <Link className="ghost-button" href={`/schedules/${schedule.id}/pdf`}>PDF</Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {schedules.map((schedule) => {
+                  const cleanTitle = schedule.title.replace(/^escala\s+/i, '');
+                  const yearAbbr = schedule.start_date ? schedule.start_date.split('-')[0].slice(-2) : '';
+                  const displayTitle = yearAbbr ? `${cleanTitle}/${yearAbbr}` : cleanTitle;
+
+                  return (
+                    <tr key={schedule.id}>
+                      <td><strong>{displayTitle}</strong><br /><span className="muted small">{schedule.notes}</span></td>
+                      <td>{schedule.locations?.name ?? '-'}</td>
+                      <td>{formatDateBRShort(schedule.start_date)} até {formatDateBRShort(schedule.end_date)}</td>
+                      <td><Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>{statusLabel(schedule.status)}</Badge></td>
+                      <td>
+                        <div className="actions" style={{ margin: 0 }}>
+                          <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
+                          <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
+                          <Link className="ghost-button" href={`/schedules/${schedule.id}/pdf`}>PDF</Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
