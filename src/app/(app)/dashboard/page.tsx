@@ -113,7 +113,7 @@ export default function DashboardPage() {
                       </Badge>
                     </td>
                     <td>
-                      <div className="actions" style={{ margin: 0 }}>
+                      <div className="actions" style={{ margin: 0, flexWrap: 'nowrap' }}>
                         <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
                         <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
                         <button className="ghost-button" style={{ color: 'var(--danger)' }} onClick={() => deleteSchedule(schedule.id, schedule.title)}>Excluir</button>

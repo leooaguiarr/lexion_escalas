@@ -154,7 +154,7 @@ export default function SchedulesPage() {
                       <td>{formatDateBRShort(schedule.start_date)} até {formatDateBRShort(schedule.end_date)}</td>
                       <td><Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>{statusLabel(schedule.status)}</Badge></td>
                       <td>
-                        <div className="actions" style={{ margin: 0 }}>
+                        <div className="actions" style={{ margin: 0, flexWrap: 'nowrap' }}>
                           <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
                           <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
                           <Link className="ghost-button" href={`/schedules/${schedule.id}/pdf`}>PDF</Link>
