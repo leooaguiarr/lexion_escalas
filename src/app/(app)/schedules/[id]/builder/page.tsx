@@ -139,7 +139,7 @@ export default function ScheduleBuilderPage() {
       planned_hours: calculateHours(shift.start_time, shift.end_time),
       completed: null,
       worked_hours: null,
-      hourly_rate: 0,
+      hourly_rate: Number(shift.hourly_rate) || 0,
       total_amount: 0,
       notes: null
     };
@@ -165,19 +165,97 @@ export default function ScheduleBuilderPage() {
 
   function updateGuard(date: string, shift: ShiftTemplate, guardId: string) {
     const key = assignmentKey(date, shift.id);
-    const guard = guards.find((item) => item.id === guardId);
-    const hours = calculateHours(shift.start_time, shift.end_time);
-    const hourlyRate = guard ? Number(guard.hourly_rate) : 0;
+    const existing = getAssignment(date, shift);
+    const start = existing.planned_start || shift.start_time;
+    const end = existing.planned_end || shift.end_time;
+    const hours = calculateHours(start, end);
+    const hourlyRate = Number(shift.hourly_rate) || 0;
     setAssignments((previous) => ({
       ...previous,
       [key]: {
-        ...getAssignment(date, shift),
+        ...existing,
         guard_id: guardId || null,
-        planned_start: shift.start_time,
-        planned_end: shift.end_time,
+        planned_start: start,
+        planned_end: end,
         planned_hours: hours,
         hourly_rate: hourlyRate,
         total_amount: Number((hours * hourlyRate).toFixed(2))
+      }
+    }));
+  }
+
+  function updateAssignmentTime(date: string, shift: ShiftTemplate, value: string, field: 'start' | 'end') {
+    const key = assignmentKey(date, shift.id);
+    const existing = getAssignment(date, shift);
+    const updatedStart = field === 'start' ? `${value}:00` : existing.planned_start;
+    const updatedEnd = field === 'end' ? `${value}:00` : existing.planned_end;
+    const hours = calculateHours(updatedStart, updatedEnd);
+    const hourlyRate = Number(shift.hourly_rate) || 0;
+
+    setAssignments((previous) => {
+      const nextAssignments = {
+        ...previous,
+        [key]: {
+          ...existing,
+          planned_start: updatedStart,
+          planned_end: updatedEnd,
+          planned_hours: hours,
+          total_amount: Number((hours * hourlyRate).toFixed(2))
+        }
+      };
+
+      // Propagar mudanças para turnos adjacentes no mesmo dia para manter a contiguidade
+      const currentIdx = shifts.findIndex(s => s.id === shift.id);
+      if (currentIdx !== -1) {
+        // Se mudou o FIM deste turno, atualiza o INÍCIO do PRÓXIMO turno
+        if (field === 'end' && currentIdx < shifts.length - 1) {
+          const nextShift = shifts[currentIdx + 1];
+          const nextKey = assignmentKey(date, nextShift.id);
+          const nextExisting = previous[nextKey] ?? getAssignment(date, nextShift);
+          const nextStart = `${value}:00`;
+          const nextEnd = nextExisting.planned_end;
+          const nextHours = calculateHours(nextStart, nextEnd);
+          const nextHourlyRate = Number(nextShift.hourly_rate) || 0;
+
+          nextAssignments[nextKey] = {
+            ...nextExisting,
+            planned_start: nextStart,
+            planned_hours: nextHours,
+            total_amount: Number((nextHours * nextHourlyRate).toFixed(2))
+          };
+        }
+
+        // Se mudou o INÍCIO deste turno, atualiza o FIM do turno ANTERIOR
+        if (field === 'start' && currentIdx > 0) {
+          const prevShift = shifts[currentIdx - 1];
+          const prevKey = assignmentKey(date, prevShift.id);
+          const prevExisting = previous[prevKey] ?? getAssignment(date, prevShift);
+          const prevStart = prevExisting.planned_start;
+          const prevEnd = `${value}:00`;
+          const prevHours = calculateHours(prevStart, prevEnd);
+          const prevHourlyRate = Number(prevShift.hourly_rate) || 0;
+
+          nextAssignments[prevKey] = {
+            ...prevExisting,
+            planned_end: prevEnd,
+            planned_hours: prevHours,
+            total_amount: Number((prevHours * prevHourlyRate).toFixed(2))
+          };
+        }
+      }
+
+      return nextAssignments;
+    });
+  }
+
+  function updateAssignmentNotes(date: string, shift: ShiftTemplate, notes: string) {
+    const key = assignmentKey(date, shift.id);
+    const existing = getAssignment(date, shift);
+    setAssignments((previous) => ({
+      ...previous,
+      [key]: {
+        ...existing,
+        notes: notes || null
       }
     }));
   }
@@ -228,7 +306,7 @@ export default function ScheduleBuilderPage() {
         if (candidate) {
           used.add(candidate.id);
           const hours = calculateHours(shift.start_time, shift.end_time);
-          const hourlyRate = Number(candidate.hourly_rate);
+          const hourlyRate = Number(shift.hourly_rate) || 0;
           updates[assignmentKey(date, shift.id)] = {
             ...existing,
             guard_id: candidate.id,
@@ -267,16 +345,17 @@ export default function ScheduleBuilderPage() {
 
     const rows = dates.flatMap((date) => shifts.map((shift) => {
       const assignment = getAssignment(date, shift);
-      const guard = guards.find((item) => item.id === assignment.guard_id);
-      const hours = calculateHours(shift.start_time, shift.end_time);
-      const hourlyRate = guard ? Number(guard.hourly_rate) : 0;
+      const start = assignment.planned_start || shift.start_time;
+      const end = assignment.planned_end || shift.end_time;
+      const hours = calculateHours(start, end);
+      const hourlyRate = Number(shift.hourly_rate) || 0;
       return {
         schedule_period_id: params.id,
         shift_template_id: shift.id,
         guard_id: assignment.guard_id,
         service_date: date,
-        planned_start: shift.start_time,
-        planned_end: shift.end_time,
+        planned_start: start,
+        planned_end: end,
         planned_hours: hours,
         completed: assignment.completed,
         worked_hours: assignment.worked_hours,
@@ -685,7 +764,10 @@ export default function ScheduleBuilderPage() {
         }
         @media (max-width: 700px) {
           .builder-cal-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
+          }
+          .builder-day-cell.empty {
+            display: none;
           }
           .guard-picker {
             top: auto !important;
@@ -694,7 +776,18 @@ export default function ScheduleBuilderPage() {
             right: 0;
             width: 100% !important;
             border-radius: 16px 16px 0 0;
-            max-height: 70vh;
+            max-height: 85vh;
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+          }
+          .guard-picker-list {
+            max-height: calc(85vh - 120px);
+          }
+          .builder-actions-strip {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .builder-action-btn {
+            justify-content: center;
           }
         }
       `}</style>
@@ -833,8 +926,23 @@ export default function ScheduleBuilderPage() {
                           >
                             <div style={{ width: 3, height: '100%', minHeight: 18, borderRadius: 2, background: shiftColor, flexShrink: 0 }} />
                             <span className="shift-slot-label" style={{ color: shiftColor }}>{shift.name.slice(0, 3)}</span>
-                            <span className={`shift-slot-guard${!guard ? ' empty' : ''}`}>
-                              {guard ? guard.short_name : '—'}
+                            <span className={`shift-slot-guard${!guard ? ' empty' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {guard ? (
+                                <>
+                                  {guard.short_name}
+                                  {(assignment.planned_start.slice(0, 5) !== shift.start_time.slice(0, 5) || 
+                                    assignment.planned_end.slice(0, 5) !== shift.end_time.slice(0, 5)) && (
+                                    <span style={{ fontSize: 9, color: 'var(--primary)', fontWeight: 700 }} title={`Horário customizado: ${assignment.planned_start.slice(0, 5)} às ${assignment.planned_end.slice(0, 5)}`}>
+                                      ⏱️
+                                    </span>
+                                  )}
+                                  {assignment.notes && (
+                                    <span style={{ fontSize: 9 }} title={`Observação: ${assignment.notes}`}>
+                                      📝
+                                    </span>
+                                  )}
+                                </>
+                              ) : '—'}
                             </span>
                             {alerts.map((a, ai) => (
                               <div key={ai} className="shift-alert-dot" style={{ background: a.tone === 'danger' ? '#dc2626' : '#d97706' }} title={a.text} />
@@ -898,27 +1006,51 @@ export default function ScheduleBuilderPage() {
               ref={popoverRef}
               style={{ top: popTop, left: popLeft }}
             >
-              <div className="guard-picker-header">
+              <div className="guard-picker-header" style={{ paddingBottom: 10, borderBottom: 'none' }}>
                 <div>
                   <div className="guard-picker-title">
                     {formatDateShort(activeCell.date)} · {fullWeekday(activeCell.date)}
                   </div>
                   <div className="guard-picker-subtitle">
-                    {shift.name} · {formatTimeRange(shift.start_time, shift.end_time)} · {formatHours(calculateHours(shift.start_time, shift.end_time))}
+                    {shift.name} · Padrão: {formatTimeRange(shift.start_time, shift.end_time)}
                   </div>
                 </div>
-                <input
-                  className="guard-picker-search"
-                  placeholder="Buscar segurança..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  autoFocus
-                />
+              </div>
+
+              {/* Ajustes de horário e observações */}
+              <div style={{ padding: '0 12px 12px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Horário do Turno (Início / Fim):</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input 
+                      type="time" 
+                      style={{ flex: 1, padding: '6px 8px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, outline: 'none' }} 
+                      value={assignment.planned_start ? assignment.planned_start.slice(0, 5) : shift.start_time.slice(0, 5)} 
+                      onChange={(e) => updateAssignmentTime(activeCell.date, shift, e.target.value, 'start')}
+                    />
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>às</span>
+                    <input 
+                      type="time" 
+                      style={{ flex: 1, padding: '6px 8px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, outline: 'none' }} 
+                      value={assignment.planned_end ? assignment.planned_end.slice(0, 5) : shift.end_time.slice(0, 5)} 
+                      onChange={(e) => updateAssignmentTime(activeCell.date, shift, e.target.value, 'end')}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Observação deste dia (Rendição/Dobra):</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Rendição 22h, Marcelo assume..." 
+                    style={{ width: '100%', padding: '6px 8px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, outline: 'none' }} 
+                    value={assignment.notes || ''} 
+                    onChange={(e) => updateAssignmentNotes(activeCell.date, shift, e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="guard-picker-list" style={{ flex: 1, overflowY: 'auto' }}>
                 {sortedGuardsForDate(activeCell.date)
-                  .filter(g => !searchFilter || g.short_name.toLowerCase().includes(searchFilter.toLowerCase()) || g.full_name.toLowerCase().includes(searchFilter.toLowerCase()))
                   .map((g) => {
                     const av = getAvailability(g.id, activeCell.date);
                     const isAssigned = assignment.guard_id === g.id;

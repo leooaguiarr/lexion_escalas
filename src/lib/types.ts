@@ -57,6 +57,7 @@ export type ShiftTemplate = {
   start_time: string;
   end_time: string;
   position: number;
+  hourly_rate: number;
   created_at?: string;
 };
 

@@ -7,7 +7,7 @@ import { StatCard } from '@/components/StatCard';
 import { Badge } from '@/components/Badge';
 import { Loading } from '@/components/Loading';
 import { supabase } from '@/lib/supabaseClient';
-import { formatMoney, statusLabel, formatDateBRShort } from '@/lib/domain';
+import { formatMoney, statusLabel, formatDateBRShort, calculateScheduleStatus } from '@/lib/domain';
 import { SchedulePeriod } from '@/lib/types';
 
 type DashboardData = {
@@ -42,9 +42,9 @@ export default function DashboardPage() {
 
     setData({
       schedules: scheduleRows,
-      activeCount: scheduleRows.filter((item) => item.status === 'active').length,
-      draftCount: scheduleRows.filter((item) => item.status === 'draft').length,
-      closedCount: scheduleRows.filter((item) => item.status === 'closed').length,
+      activeCount: scheduleRows.filter((item) => calculateScheduleStatus(item.start_date, item.end_date) === 'active').length,
+      draftCount: scheduleRows.filter((item) => calculateScheduleStatus(item.start_date, item.end_date) === 'draft').length,
+      closedCount: scheduleRows.filter((item) => calculateScheduleStatus(item.start_date, item.end_date) === 'closed').length,
       assignmentsCount: assignmentRows.length,
       emptyAssignmentsCount: assignmentRows.filter((item) => !item.guard_id).length,
       pendingAmount: paymentRows.filter((item) => item.status === 'pending_pickup').reduce((sum, item) => sum + Number(item.total_amount ?? 0), 0),
@@ -108,14 +108,19 @@ export default function DashboardPage() {
                     <td>{schedule.locations?.name ?? '-'}</td>
                     <td>{formatDateBRShort(schedule.start_date)} até {formatDateBRShort(schedule.end_date)}</td>
                     <td>
-                      <Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>
-                        {statusLabel(schedule.status)}
-                      </Badge>
+                      {(() => {
+                        const calculatedStatus = calculateScheduleStatus(schedule.start_date, schedule.end_date);
+                        return (
+                          <Badge tone={calculatedStatus === 'closed' ? 'success' : calculatedStatus === 'active' ? 'info' : 'warning'}>
+                            {statusLabel(calculatedStatus)}
+                          </Badge>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div className="actions" style={{ margin: 0, flexWrap: 'nowrap' }}>
-                        <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Abrir</Link>
-                        <Link className="ghost-button" href={`/schedules/${schedule.id}/builder`}>Montar</Link>
+                        <Link className="secondary-button" href={`/schedules/${schedule.id}`}>Editar</Link>
+                        <Link className="ghost-button" href={`/schedules/${schedule.id}/pdf`}>PDF</Link>
                         <button className="ghost-button" style={{ color: 'var(--danger)' }} onClick={() => deleteSchedule(schedule.id, schedule.title)}>Excluir</button>
                       </div>
                     </td>

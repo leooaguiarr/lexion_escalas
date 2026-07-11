@@ -8,9 +8,9 @@ import { Profile } from '@/lib/types';
 
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/schedules', label: 'Escalas' },
   { href: '/guards', label: 'Seguranças' },
   { href: '/locations', label: 'Locais' },
-  { href: '/schedules', label: 'Escalas' },
   { href: '/payments', label: 'Pagamentos' },
   { href: '/reports', label: 'Relatórios' }
 ];

@@ -7,7 +7,7 @@ import { ErrorMessage } from '@/components/ErrorMessage';
 import { EmptyState } from '@/components/EmptyState';
 import { Loading } from '@/components/Loading';
 import { supabase } from '@/lib/supabaseClient';
-import { formatMoney, statusLabel, toNumber } from '@/lib/domain';
+import { statusLabel } from '@/lib/domain';
 import { Guard, Status } from '@/lib/types';
 
 type FormState = {
@@ -15,7 +15,6 @@ type FormState = {
   full_name: string;
   short_name: string;
   phone: string;
-  hourly_rate: string;
   status: Status;
   notes: string;
 };
@@ -24,7 +23,6 @@ const emptyForm: FormState = {
   full_name: '',
   short_name: '',
   phone: '',
-  hourly_rate: '0',
   status: 'active',
   notes: ''
 };
@@ -35,6 +33,7 @@ export default function GuardsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     loadGuards();
@@ -54,10 +53,10 @@ export default function GuardsPage() {
       full_name: guard.full_name,
       short_name: guard.short_name,
       phone: guard.phone,
-      hourly_rate: String(guard.hourly_rate ?? 0),
       status: guard.status,
       notes: guard.notes ?? ''
     });
+    setShowCreateForm(true);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -69,7 +68,6 @@ export default function GuardsPage() {
       full_name: form.full_name,
       short_name: form.short_name,
       phone: form.phone,
-      hourly_rate: toNumber(form.hourly_rate),
       status: form.status,
       notes: form.notes || null
     };
@@ -85,6 +83,7 @@ export default function GuardsPage() {
     }
 
     setForm(emptyForm);
+    setShowCreateForm(false);
     await loadGuards();
   }
 
@@ -94,47 +93,62 @@ export default function GuardsPage() {
     await loadGuards();
   }
 
+  const shouldShowForm = showCreateForm || !!form.id;
+
   return (
     <div>
-      <PageHeader title="Seguranças" description="Cadastro simples: nome, telefone, valor por hora e status." />
+      <PageHeader 
+        title="Seguranças" 
+        description="Cadastro simples: nome, telefone e status." 
+        action={
+          <button className="primary-button" onClick={() => {
+            if (shouldShowForm) {
+              setForm(emptyForm);
+              setShowCreateForm(false);
+            } else {
+              setShowCreateForm(true);
+            }
+          }}>
+            {shouldShowForm ? 'Cancelar' : 'Novo segurança'}
+          </button>
+        }
+      />
 
-      <section className="card">
-        <h2>{form.id ? 'Editar segurança' : 'Novo segurança'}</h2>
-        <form onSubmit={submit} className="form-grid">
-          <div className="form-row">
-            <label>Nome completo</label>
-            <input required value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} />
-          </div>
-          <div className="form-row">
-            <label>Nome curto/apelido</label>
-            <input required value={form.short_name} onChange={(event) => setForm({ ...form, short_name: event.target.value })} />
-          </div>
-          <div className="form-row">
-            <label>Telefone</label>
-            <input required value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
-          </div>
-          <div className="form-row">
-            <label>Valor por hora</label>
-            <input required type="number" step="0.01" value={form.hourly_rate} onChange={(event) => setForm({ ...form, hourly_rate: event.target.value })} />
-          </div>
-          <div className="form-row">
-            <label>Status</label>
-            <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Status })}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
-            </select>
-          </div>
-          <div className="form-row full">
-            <label>Observação</label>
-            <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
-          </div>
-          <div className="actions full">
-            <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
-            {form.id ? <button type="button" className="ghost-button" onClick={() => setForm(emptyForm)}>Cancelar edição</button> : null}
-          </div>
-        </form>
-        <ErrorMessage message={error} />
-      </section>
+      {shouldShowForm && (
+        <section className="card">
+          <h2>{form.id ? 'Editar segurança' : 'Novo segurança'}</h2>
+          <form onSubmit={submit} className="form-grid">
+            <div className="form-row">
+              <label>Nome completo</label>
+              <input required value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} />
+            </div>
+            <div className="form-row">
+              <label>Nome curto/apelido</label>
+              <input required value={form.short_name} onChange={(event) => setForm({ ...form, short_name: event.target.value })} />
+            </div>
+            <div className="form-row">
+              <label>Telefone</label>
+              <input required value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+            </div>
+            <div className="form-row">
+              <label>Status</label>
+              <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Status })}>
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+            <div className="form-row full">
+              <label>Observação</label>
+              <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+            </div>
+            <div className="actions full">
+              <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+              {form.id ? <button type="button" className="ghost-button" onClick={() => { setForm(emptyForm); setShowCreateForm(false); }}>Cancelar edição</button> : null}
+            </div>
+          </form>
+          <ErrorMessage message={error} />
+        </section>
+      )}
 
       <section className="card">
         <h2>Lista de seguranças</h2>
@@ -145,7 +159,6 @@ export default function GuardsPage() {
                 <tr>
                   <th>Nome</th>
                   <th>Telefone</th>
-                  <th>Valor/hora</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
@@ -155,7 +168,6 @@ export default function GuardsPage() {
                   <tr key={guard.id}>
                     <td><strong>{guard.short_name}</strong><br /><span className="muted small">{guard.full_name}</span></td>
                     <td>{guard.phone}</td>
-                    <td>{formatMoney(guard.hourly_rate)}</td>
                     <td><Badge tone={guard.status === 'active' ? 'success' : 'neutral'}>{statusLabel(guard.status)}</Badge></td>
                     <td>
                       <div className="actions" style={{ margin: 0 }}>

@@ -26,6 +26,7 @@ export default function LocationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     loadLocations();
@@ -47,6 +48,7 @@ export default function LocationsPage() {
       notes: location.notes ?? '',
       status: location.status
     });
+    setShowCreateForm(true);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -72,6 +74,7 @@ export default function LocationsPage() {
     }
 
     setForm(emptyForm);
+    setShowCreateForm(false);
     await loadLocations();
   }
 
@@ -81,39 +84,58 @@ export default function LocationsPage() {
     await loadLocations();
   }
 
+  const shouldShowForm = showCreateForm || !!form.id;
+
   return (
     <div>
-      <PageHeader title="Locais" description="Cadastro dos locais onde a escala será montada." />
+      <PageHeader 
+        title="Locais" 
+        description="Cadastro dos locais onde a escala será montada." 
+        action={
+          <button className="primary-button" onClick={() => {
+            if (shouldShowForm) {
+              setForm(emptyForm);
+              setShowCreateForm(false);
+            } else {
+              setShowCreateForm(true);
+            }
+          }}>
+            {shouldShowForm ? 'Cancelar' : 'Novo local'}
+          </button>
+        }
+      />
 
-      <section className="card">
-        <h2>{form.id ? 'Editar local' : 'Novo local'}</h2>
-        <form onSubmit={submit} className="form-grid">
-          <div className="form-row">
-            <label>Nome do local</label>
-            <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          </div>
-          <div className="form-row">
-            <label>Status</label>
-            <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Status })}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
-            </select>
-          </div>
-          <div className="form-row full">
-            <label>Endereço</label>
-            <input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
-          </div>
-          <div className="form-row full">
-            <label>Observação</label>
-            <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
-          </div>
-          <div className="actions full">
-            <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
-            {form.id ? <button type="button" className="ghost-button" onClick={() => setForm(emptyForm)}>Cancelar edição</button> : null}
-          </div>
-        </form>
-        <ErrorMessage message={error} />
-      </section>
+      {shouldShowForm && (
+        <section className="card">
+          <h2>{form.id ? 'Editar local' : 'Novo local'}</h2>
+          <form onSubmit={submit} className="form-grid">
+            <div className="form-row">
+              <label>Nome do local</label>
+              <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            </div>
+            <div className="form-row">
+              <label>Status</label>
+              <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Status })}>
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+            <div className="form-row full">
+              <label>Endereço</label>
+              <input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+            </div>
+            <div className="form-row full">
+              <label>Observação</label>
+              <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+            </div>
+            <div className="actions full">
+              <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+              {form.id ? <button type="button" className="ghost-button" onClick={() => { setForm(emptyForm); setShowCreateForm(false); }}>Cancelar edição</button> : null}
+            </div>
+          </form>
+          <ErrorMessage message={error} />
+        </section>
+      )}
 
       <section className="card">
         <h2>Lista de locais</h2>

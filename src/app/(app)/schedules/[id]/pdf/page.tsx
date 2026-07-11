@@ -48,7 +48,25 @@ export default function SchedulePdfPage() {
 
   function getName(date: string, shift: ShiftTemplate): string {
     const assignment = assignments[assignmentKey(date, shift.id)];
-    return assignment?.guards?.short_name ?? '—';
+    if (!assignment || !assignment.guards) return '—';
+    
+    let text = assignment.guards.short_name;
+    const hasCustomHours = assignment.planned_start && shift.start_time && (
+      assignment.planned_start.slice(0, 5) !== shift.start_time.slice(0, 5) || 
+      assignment.planned_end.slice(0, 5) !== shift.end_time.slice(0, 5)
+    );
+    
+    if (hasCustomHours) {
+      const start = assignment.planned_start.slice(0, 5);
+      const end = assignment.planned_end.slice(0, 5);
+      text += ` (${start} às ${end})`;
+    }
+    
+    if (assignment.notes) {
+      text += ` [${assignment.notes}]`;
+    }
+    
+    return text;
   }
 
   if (loading) return <Loading />;
@@ -87,6 +105,11 @@ export default function SchedulePdfPage() {
 
         <div className="pdf-turnos">
           <strong>Observações:</strong>
+          {schedule.notes && (
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: 12, borderLeft: '3px solid var(--primary)', paddingLeft: 10, color: '#334155' }}>
+              {schedule.notes}
+            </div>
+          )}
           <div>- Escala sujeita a alterações.</div>
           <div>- Confirmar qualquer dúvida com o escalante.</div>
           <div>- Quando o mesmo nome aparecer em mais de um turno, significa que o segurança puxará mais de um período.</div>

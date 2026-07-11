@@ -108,3 +108,23 @@ export function statusLabel(status: string): string {
   };
   return map[status] ?? status;
 }
+
+export function calculateScheduleStatus(startDate: string, endDate: string): 'draft' | 'active' | 'closed' {
+  if (!startDate || !endDate) return 'draft';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const start = parseISODate(startDate);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = parseISODate(endDate);
+  end.setHours(0, 0, 0, 0);
+  
+  if (today < start) {
+    return 'draft';
+  }
+  if (today >= start && today <= end) {
+    return 'active';
+  }
+  return 'closed';
+}

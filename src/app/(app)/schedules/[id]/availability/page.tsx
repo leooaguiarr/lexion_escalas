@@ -934,11 +934,41 @@ export default function AvailabilityPage() {
         }
 
         @media (max-width: 900px) {
-          .avail-layout { grid-template-columns: 1fr; }
-          .guard-sidebar { position: static; }
-          .cal-cell { min-height: 54px; aspect-ratio: auto; }
-          .cal-day-number { font-size: 14px; }
+          .avail-layout { grid-template-columns: minmax(0, 1fr); }
+          .guard-sidebar { 
+            position: static; 
+            padding: 12px;
+          }
+          /* Scroll horizontal para lista de seguranças no celular */
+          .guard-sidebar > div {
+            flex-direction: row !important;
+            overflow-x: auto;
+            padding-bottom: 8px;
+          }
+          .guard-sidebar button {
+            white-space: nowrap;
+            flex-shrink: 0;
+          }
+          
+          .cal-container { 
+            padding: 16px 12px; 
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
+          }
+          .cal-grid { gap: 2px; }
+          .cal-weekdays { gap: 2px; }
+          .cal-weekday-label { font-size: 9px; padding: 4px 0; }
+          .cal-cell { 
+            min-height: 48px; 
+            aspect-ratio: auto; 
+            border-width: 1px;
+            border-radius: 6px;
+          }
+          .cal-day-number { font-size: 12px; }
+          .cal-status-icon { font-size: 10px; }
           .cal-day-weekday { display: none; }
+          
           .cal-popover {
             position: fixed;
             top: auto;
@@ -949,11 +979,14 @@ export default function AvailabilityPage() {
             transform: none;
             border-radius: 16px 16px 0 0;
             padding: 20px;
-            max-height: 70vh;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            max-height: 85vh;
             overflow-y: auto;
           }
           .cal-popover::before { display: none; }
-          .preset-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+          .preset-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+          .cal-quick-actions { flex-direction: column; align-items: stretch; }
+          .cal-quick-btn { width: 100%; }
         }
       `}</style>
 
@@ -1015,7 +1048,7 @@ export default function AvailabilityPage() {
         </div>
 
         {/* Main Panel: Calendar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <ErrorMessage message={error} />
           {success && <div className="success-message" style={{ margin: 0 }}>{success}</div>}
 

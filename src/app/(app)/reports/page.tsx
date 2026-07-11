@@ -7,7 +7,7 @@ import { Loading } from '@/components/Loading';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
 import { supabase } from '@/lib/supabaseClient';
-import { formatDateBR, statusLabel } from '@/lib/domain';
+import { formatDateBR, statusLabel, calculateScheduleStatus } from '@/lib/domain';
 import { SchedulePeriod } from '@/lib/types';
 
 export default function ReportsPage() {
@@ -43,7 +43,16 @@ export default function ReportsPage() {
                     <td><strong>{schedule.title}</strong></td>
                     <td>{schedule.locations?.name ?? '-'}</td>
                     <td>{formatDateBR(schedule.start_date)} até {formatDateBR(schedule.end_date)}</td>
-                    <td><Badge tone={schedule.status === 'closed' ? 'success' : schedule.status === 'active' ? 'info' : 'warning'}>{statusLabel(schedule.status)}</Badge></td>
+                    <td>
+                      {(() => {
+                        const calculatedStatus = calculateScheduleStatus(schedule.start_date, schedule.end_date);
+                        return (
+                          <Badge tone={calculatedStatus === 'closed' ? 'success' : calculatedStatus === 'active' ? 'info' : 'warning'}>
+                            {statusLabel(calculatedStatus)}
+                          </Badge>
+                        );
+                      })()}
+                    </td>
                     <td>
                       <div className="actions" style={{ margin: 0 }}>
                         <Link className="secondary-button" href={`/schedules/${schedule.id}/pdf`}>PDF da escala</Link>

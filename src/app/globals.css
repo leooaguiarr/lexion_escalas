@@ -678,7 +678,7 @@ td input {
 
 @media (max-width: 1050px) {
   .app-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {
@@ -703,11 +703,31 @@ td input {
   .grid-3,
   .grid-2,
   .form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   
   .content {
     padding: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .content {
+    padding: 12px;
+  }
+  .card {
+    padding: 16px 12px;
   }
 }
 
